@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CENTEL - Sistema de Gestão</title>
+    <style>
+        :root {
+            --bg-dark: #1a1d24; --bg-medium: #282c37; --bg-light: #323846;
+            --primary: #00b894; --primary-hover: #55efc4; --text-primary: #dfe6e9;
+            --text-secondary: #b2bec3; --border-color: #4b5263; --danger: #d63031;
+            --warning: #fdcb6e; --success: #00b894;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: var(--bg-dark); color: var(--text-primary); overflow: hidden; }
+        .app-container { display: flex; height: 100vh; }
+
+        /* --- TELA DE LOGIN --- */
+        #login-screen { display: flex; justify-content: center; align-items: center; width: 100%; height: 100vh; position: absolute; top: 0; left: 0; background: var(--bg-dark); z-index: 100; transition: opacity 0.5s ease-out; }
+        #login-screen.hidden { opacity: 0; pointer-events: none; }
+        .login-box { width: 380px; padding: 40px; background: var(--bg-medium); border-radius: 8px; text-align: center; border: 1px solid var(--border-color); }
+        .login-box .logo { width: 180px; margin-bottom: 30px; }
+        .login-box .input-group { margin-bottom: 20px; text-align: left; }
+        .login-box label { font-size: 14px; color: var(--text-secondary); display: block; margin-bottom: 5px; }
+        .login-box input { width: 100%; padding: 12px; background: var(--bg-light); border: 1px solid var(--border-color); border-radius: 5px; color: var(--text-primary); font-size: 16px; }
+        .login-box button { width: 100%; padding: 12px; background: var(--primary); border: none; border-radius: 5px; color: white; font-weight: bold; font-size: 16px; cursor: pointer; transition: background-color 0.2s; }
+        .login-box button:hover { background: var(--primary-hover); color: var(--bg-dark); }
+        .login-error { color: var(--danger); margin-top: 15px; font-size: 14px; visibility: hidden; }
+        .login-error.show { visibility: visible; }
+
+        /* --- LAYOUT PRINCIPAL --- */
+        .sidebar { width: 260px; background: var(--bg-medium); padding: 20px; display: flex; flex-direction: column; border-right: 1px solid var(--border-color); }
+        .sidebar .logo { width: 150px; margin: 10px auto 40px; }
+        .sidebar nav a { display: flex; align-items: center; color: var(--text-secondary); text-decoration: none; padding: 12px 15px; border-radius: 6px; margin-bottom: 8px; transition: background-color 0.2s, color 0.2s; }
+        .sidebar nav a i { margin-right: 15px; width: 20px; }
+        .sidebar nav a:hover, .sidebar nav a.active { background: var(--primary); color: white; }
+        .sidebar .user-profile { margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border-color); text-align: center; }
+        .sidebar #logout-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 14px; }
+        .sidebar #logout-btn:hover { color: var(--danger); }
+        .main-content { flex: 1; overflow-y: auto; padding: 30px; }
+        .page { display: none; }
+        .page.active { display: block; animation: fadeIn 0.4s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* --- COMPONENTES GERAIS --- */
+        h1 { margin-bottom: 20px; color: var(--text-primary); }
+        .card-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+        .card { background: var(--bg-medium); padding: 20px; border-radius: 8px; border: 1px solid var(--border-color); }
+        .card h3 { color: var(--text-secondary); font-size: 16px; margin-bottom: 10px; }
+        .card .value { font-size: 32px; font-weight: bold; color: var(--primary); }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .table-container { background: var(--bg-medium); padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); color: var(--bg-dark); }
+        .btn-secondary { background: var(--bg-light); color: var(--text-primary); }
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .data-table th, .data-table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        .data-table th { font-size: 14px; color: var(--text-secondary); }
+        .data-table tbody tr:hover { background: var(--bg-light); }
+        .status { padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; text-transform: capitalize; }
+        .status.em-andamento { background: var(--warning); color: var(--bg-dark); }
+        .status.finalizada { background: var(--success); color: white; }
+        .status.aguardando { background: var(--danger); color: white; }
+        .status.pago { background: var(--success); color: white; }
+        .status.pendente { background: var(--danger); color: white; }
+        .action-buttons button { background: none; border: none; color: var(--text-secondary); cursor: pointer; margin: 0 5px; font-size: 16px; }
+        .action-buttons button:hover { color: var(--primary); }
+        .action-buttons button:disabled { color: #666; cursor: not-allowed; }
+        .action-buttons button:disabled:hover { color: #666; }
+
+        /* --- MODAIS --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+        .modal-overlay.active { opacity: 1; pointer-events: all; }
+        .modal-content { background: var(--bg-medium); padding: 30px; border-radius: 8px; width: 90%; max-width: 600px; border: 1px solid var(--border-color); max-height: 90vh; overflow-y: auto;}
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-header h2 { margin: 0; }
+        .modal-header .close-btn { background: none; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group.full-width { grid-column: 1 / -1; }
+        .form-group label { margin-bottom: 5px; font-size: 14px; color: var(--text-secondary); }
+        .form-group label .required { color: var(--danger); }
+        .form-group input, .form-group select, .form-group textarea { padding: 10px; background: var(--bg-light); border: 1px solid var(--border-color); border-radius: 5px; color: var(--text-primary); font-size: 14px; }
+        .form-group input:focus, .form-group textarea:focus { border-color: var(--primary); outline: none; }
+        .form-buttons { margin-top: 30px; display: flex; justify-content: flex-end; gap: 10px; }
+        .btn-danger { background-color: var(--danger); color: white; }
+        .os-details p { margin-bottom: 10px; color: var(--text-secondary); }
+        .os-details p b { color: var(--text-primary); }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+</head>
+<body>
+
+    <div id="login-screen">
+        <div class="login-box">
+            <img src="https://i.imgur.com/2JKI95m.png" alt="Centel Logo" class="logo" onerror="this.onerror=null; this.src='https://i.imgur.com/2JKI95m.jpg'; this.onerror=function(){this.src='https://imgur.com/a/ZaT2ZTS#2JKI95m';};">
+            <div class="input-group">
+                <label for="username">Usuário</label>
+                <input type="text" id="username" value="admin">
+            </div>
+            <div class="input-group">
+                <label for="password">Senha</label>
+                <input type="password" id="password" value="admin123">
+            </div>
+            <p id="login-error" class="login-error">Usuário ou senha inválidos.</p>
+            <button id="login-btn">Entrar</button>
+        </div>
+    </div>
+    
+    <div class="app-container">
+        <aside class="sidebar">
+            <img src="https://i.imgur.com/2JKI95m.png" alt="Centel Logo" class="logo" onerror="this.onerror=null; this.src='https://i.imgur.com/2JKI95m.jpg'; this.onerror=function(){this.src='https://imgur.com/a/ZaT2ZTS#2JKI95m';};">
+            <nav id="main-nav">
+                <a href="#" class="nav-link active" data-page="dashboard"><i class="fas fa-home"></i> Dashboard</a>
+                <a href="#" class="nav-link" data-page="orders" data-permission="atendente,tecnico,admin"><i class="fas fa-clipboard-list"></i> Ordens de Serviço</a>
+                <a href="#" class="nav-link" data-page="clients" data-permission="atendente,tecnico,admin"><i class="fas fa-users"></i> Clientes</a>
+                <a href="#" class="nav-link" data-page="stock" data-permission="tecnico,admin"><i class="fas fa-box"></i> Estoque</a>
+                <a href="#" class="nav-link" data-page="reports" data-permission="admin"><i class="fas fa-chart-line"></i> Relatórios</a>
+            </nav>
+            <div class="user-profile">
+                <p id="user-info"></p>
+                <button id="logout-btn"><i class="fas fa-sign-out-alt"></i> Sair</button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div id="dashboard" class="page active">
+                <h1>Dashboard</h1>
+                <div class="card-container">
+                    <div class="card"><h3 >Ordens em Andamento</h3><p class="value" id="metric-andamento">0</p></div>
+                    <div class="card"><h3>Aguardando Peças</h3><p class="value" id="metric-aguardando">0</p></div>
+                    <div class="card"><h3>Total de Itens em Estoque</h3><p class="value" id="metric-stock">0</p></div>
+                    <div class="card"><h3>Clientes Cadastrados</h3><p class="value" id="metric-clientes">0</p></div>
+                </div>
+            </div>
+
+            <div id="orders" class="page">
+                <div class="page-header">
+                    <h1>Ordens de Serviço</h1>
+                    <button class="btn btn-primary" id="btn-new-os" data-permission="atendente,admin"><i class="fas fa-plus"></i> Nova OS</button>
+                </div>
+                <div class="table-container"> <table class="data-table"> <thead id="os-table-head"></thead> <tbody id="os-table-body"></tbody> </table> </div>
+            </div>
+
+            <div id="clients" class="page">
+                <div class="page-header">
+                    <h1>Clientes</h1>
+                    <button class="btn btn-primary" id="btn-new-client" data-permission="atendente,tecnico,admin"><i class="fas fa-user-plus"></i> Novo Cliente</button>
+                </div>
+                <div class="table-container"> <table class="data-table"> <thead id="clients-table-head"></thead> <tbody id="clients-table-body"></tbody> </table> </div>
+            </div>
+
+            <div id="stock" class="page">
+                <div class="page-header">
+                    <h1>Estoque</h1>
+                    <button class="btn btn-primary" id="btn-new-item" data-permission="admin"><i class="fas fa-plus"></i> Adicionar Item</button>
+                </div>
+                <div class="table-container"> <table class="data-table"> <thead id="stock-table-head"></thead> <tbody id="stock-table-body"></tbody> </table> </div>
+            </div>
+            
+            <div id="reports" class="page"><h1>Relatórios</h1><p>Funcionalidade em desenvolvimento.</p></div>
+        </main>
+    </div>
+
+    <div id="client-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header"><h2 id="client-modal-title"></h2><button class="close-btn">&times;</button></div>
+            <form id="client-form">
+                <input type="hidden" id="client-id">
+                <div class="form-grid">
+                    <div class="form-group full-width"><label for="client-name">Nome <span class="required">*</span></label><input type="text" id="client-name" required></div>
+                    <div class="form-group"><label for="client-cpf">CPF <span class="required">*</span></label><input type="text" id="client-cpf" placeholder="000.000.000-00" required></div>
+                    <div class="form-group"><label for="client-phone">Telefone <span class="required">*</span></label><input type="text" id="client-phone" required></div>
+                    <div class="form-group"><label for="client-cep">CEP <span class="required">*</span></label><input type="text" id="client-cep" required maxlength="8" placeholder="Apenas números"></div>
+                    <div class="form-group"><label for="client-email">Email</label><input type="email" id="client-email"></div>
+                    <div class="form-group full-width"><label for="client-address">Endereço <span class="required">*</span></label><input type="text" id="client-address" required minlength="10"></div>
+                </div>
+                <div class="form-buttons"><button type="button" class="btn btn-secondary close-btn">Cancelar</button><button type="submit" class="btn btn-primary">Salvar</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div id="os-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header"><h2 id="os-modal-title"></h2><button class="close-btn">&times;</button></div>
+            <form id="os-form">
+                <input type="hidden" id="os-id">
+                <div class="form-grid">
+                    <div class="form-group"><label for="os-client-id">Cliente <span class="required">*</span></label><select id="os-client-id" required></select></div>
+                    <div class="form-group"><label for="os-product">Produto/Equipamento <span class="required">*</span></label><input type="text" id="os-product" required></div>
+                    <div class="form-group full-width"><label for="os-description">Descrição do Problema <span class="required">*</span></label><textarea id="os-description" rows="4" required></textarea></div>
+                </div>
+                <div class="form-buttons"><button type="button" class="btn btn-secondary close-btn">Cancelar</button><button type="submit" class="btn btn-primary">Salvar OS</button></div>
+            </form>
+        </div>
+    </div>
+    
+    <div id="status-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header"><h2>Alterar Status da OS</h2><button class="close-btn">&times;</button></div>
+            <form id="status-form">
+                <input type="hidden" id="status-os-id">
+                <div class="form-group"><label for="os-new-status">Novo Status</label><select id="os-new-status"><option value="em-andamento">Em Andamento</option><option value="aguardando">Aguardando Peças</option><option value="finalizada">Finalizada</option></select></div>
+                <div class="form-buttons"><button type="button" class="btn btn-secondary close-btn">Cancelar</button><button type="submit" class="btn btn-primary">Salvar</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div id="os-details-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header"><h2>Detalhes da OS</h2><button class="close-btn">&times;</button></div>
+            <form id="os-details-form">
+                <input type="hidden" id="os-details-id">
+                <div class="os-details">
+                    <p><b>Cliente:</b> <span id="details-os-client"></span></p>
+                    <p><b>Produto:</b> <span id="details-os-product"></span></p>
+                    <p><b>Problema Reportado:</b> <span id="details-os-description"></span></p>
+                </div>
+                <hr style="border-color: var(--border-color); margin: 20px 0;">
+                <div class="form-group">
+                    <label for="os-observation">Observações Técnicas</label>
+                    <textarea id="os-observation" rows="5" placeholder="Adicione aqui o laudo, peças trocadas, etc."></textarea>
+                </div>
+                <div class="form-buttons">
+                    <button type="button" class="btn btn-secondary close-btn">Fechar</button>
+                    <button type="submit" class="btn btn-primary" id="btn-save-observation">Salvar Observações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="item-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header"><h2 id="item-modal-title"></h2><button class="close-btn">&times;</button></div>
+            <form id="item-form">
+                <input type="hidden" id="item-id">
+                <div class="form-grid">
+                    <div class="form-group full-width"><label for="item-name">Nome do Item <span class="required">*</span></label><input type="text" id="item-name" required></div>
+                    <div class="form-group"><label for="item-brand">Marca</label><input type="text" id="item-brand"></div>
+                    <div class="form-group"><label for="item-model">Modelo</label><input type="text" id="item-model"></div>
+                    <div class="form-group" id="stock-initial-group"><label for="item-stock-initial">Estoque Inicial <span class="required">*</span></label><input type="number" id="item-stock-initial" required min="0"></div>
+                </div>
+                <div class="form-buttons"><button type="button" class="btn btn-secondary close-btn">Cancelar</button><button type="submit" class="btn btn-primary">Salvar</button></div>
+            </form>
+        </div>
+    </div>
+    
+    <div id="stock-adjust-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header"><h2 id="stock-adjust-title"></h2><button class="close-btn">&times;</button></div>
+            <form id="stock-adjust-form">
+                <input type="hidden" id="stock-adjust-item-id">
+                <p>Quantidade Atual: <b id="stock-adjust-current-qty"></b></p>
+                <div class="form-group"><label for="stock-adjust-amount">Quantidade a Adicionar/Remover <span class="required">*</span></label><input type="number" id="stock-adjust-amount" required placeholder="Use negativos para remover (ex: -2)"></div>
+                <div class="form-buttons"><button type="button" class="btn btn-secondary close-btn">Cancelar</button><button type="submit" class="btn btn-primary">Ajustar Estoque</button></div>
+            </form>
+        </div>
+    </div>
+    
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- SIMULAÇÃO DE BANCO DE DADOS ---
+    const db = {
+        users: {
+            'admin': { pass: 'admin123', role: 'admin', name: 'Admin' },
+            'atendente': { pass: 'ate123', role: 'atendente', name: 'Atendente' },
+            'tecnico': { pass: 'tec123', role: 'tecnico', name: 'Técnico' }
+        },
+        clients: JSON.parse(localStorage.getItem('centel_clients')) || [
+            { id: 1, name: 'Matheus Knupp', phone: '31 99973-1252', email: 'matheus@email.com', cpf: '12345678901', cep: '35160123', address: 'Rua das Flores, 123, Centro' },
+            { id: 2, name: 'Maria Eduarda', phone: '31 99326-8121', email: 'maria@email.com', cpf: '98765432109', cep: '35160456', address: 'Avenida Principal, 456, Bairro Novo' }
+        ],
+        serviceOrders: JSON.parse(localStorage.getItem('centel_serviceOrders')) || [
+            { id: 1, clientId: 1, clientName: 'Matheus Knupp', product: 'TV Samsung 50"', description: 'Não liga', date: '2025-10-01', status: 'em-andamento', paymentStatus: 'Pendente', observation: 'Cliente relata que o aparelho desligou subitamente. Suspeita de fonte.' },
+            { id: 2, clientId: 2, clientName: 'Maria Eduarda', product: 'Notebook Dell', description: 'Tela quebrada', date: '2025-10-03', status: 'aguardando', paymentStatus: 'Pendente', observation: '' },
+            { id: 3, clientId: 1, clientName: 'Matheus Knupp', product: 'Soundbar JBL', description: 'Sem som', date: '2025-09-25', status: 'finalizada', paymentStatus: 'Pago', observation: 'Troca do circuito de áudio. Testado e funcionando perfeitamente.' }
+        ],
+        items: JSON.parse(localStorage.getItem('centel_items')) || [
+            { id: 1, name: 'Tela LED 42"', brand: 'LG', model: '42LN5400', quantity: 5 },
+            { id: 2, name: 'Capacitor 1000uF', brand: 'Samsung', model: 'Eletrolítico', quantity: 23 },
+            { id: 3, name: 'Cabo HDMI 2m', brand: 'Philips', model: 'Genérico', quantity: 10 }
+        ],
+        save() {
+            localStorage.setItem('centel_clients', JSON.stringify(this.clients));
+            localStorage.setItem('centel_serviceOrders', JSON.stringify(this.serviceOrders));
+            localStorage.setItem('centel_items', JSON.stringify(this.items));
+        }
+    };
+    let currentUser = null;
+
+    // --- LÓGICA DE LOGIN, INICIALIZAÇÃO E NAVEGAÇÃO ---
+    const loginScreen = document.getElementById('login-screen');
+    const loginBtn = document.getElementById('login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    loginBtn.addEventListener('click', () => {
+        const username = document.getElementById('username').value;
+        const pass = document.getElementById('password').value;
+        const user = db.users[username];
+        if (user && user.pass === pass) {
+            currentUser = { username, ...user };
+            loginScreen.classList.add('hidden');
+            initializeApp();
+        } else {
+            document.getElementById('login-error').classList.add('show');
+        }
+    });
+    logoutBtn.addEventListener('click', () => { location.reload(); });
+    function initializeApp() {
+        applyPermissions();
+        renderAllTables();
+        updateDashboard();
+        const userInfo = document.getElementById('user-info');
+        const roleName = currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1);
+        userInfo.textContent = `${currentUser.name} (${roleName})`;
+        document.querySelector('.nav-link[data-page="dashboard"]').click();
+    }
+    function applyPermissions() {
+        document.querySelectorAll('[data-permission]').forEach(el => {
+            const requiredRoles = el.dataset.permission.split(',');
+            el.style.display = requiredRoles.includes(currentUser.role) ? '' : 'none';
+        });
+    }
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', e => {
+            e.preventDefault();
+            const pageId = link.dataset.page;
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            link.classList.add('active');
+        });
+    });
+    function updateDashboard() {
+        document.getElementById('metric-andamento').textContent = db.serviceOrders.filter(o => o.status === 'em-andamento').length;
+        document.getElementById('metric-aguardando').textContent = db.serviceOrders.filter(o => o.status === 'aguardando').length;
+        document.getElementById('metric-clientes').textContent = db.clients.length;
+        document.getElementById('metric-stock').textContent = db.items.reduce((sum, item) => sum + item.quantity, 0);
+    }
+    function renderAllTables() {
+        renderClientsTable();
+        renderOsTable();
+        renderStockTable();
+    }
+    function openModal(modalId) { document.getElementById(modalId).classList.add('active'); }
+    function closeModal() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active')); }
+    document.querySelectorAll('.modal-overlay .close-btn').forEach(btn => btn.addEventListener('click', closeModal));
+
+    // --- FUNÇÃO DE VALIDAÇÃO DE CPF ---
+    function isValidCPF(cpf) {
+        if (typeof cpf !== 'string') return false;
+        cpf = cpf.replace(/[^\d]+/g, '');
+        if (cpf.length !== 11 || !!cpf.match(/(\d)\1{10}/)) return false;
+        cpf = cpf.split('').map(el => +el);
+        const rest = (count) => (cpf.slice(0, count).reduce((soma, el, index) => soma + el * (count + 1 - index), 0) * 10) % 11 % 10;
+        return rest(9) === cpf[9] && rest(10) === cpf[10];
+    }
+    
+    // --- GESTÃO DE CLIENTES ---
+    const clientsTableBody = document.getElementById('clients-table-body');
+    document.getElementById('btn-new-client').addEventListener('click', () => { document.getElementById('client-form').reset(); document.getElementById('client-id').value = ''; document.getElementById('client-modal-title').textContent = 'Novo Cliente'; openModal('client-modal'); });
+    document.getElementById('client-form').addEventListener('submit', (e) => { 
+        e.preventDefault(); 
+        const id = document.getElementById('client-id').value;
+        const cpf = document.getElementById('client-cpf').value;
+        const cep = document.getElementById('client-cep').value;
+        const address = document.getElementById('client-address').value;
+
+        if (!isValidCPF(cpf)) { alert('CPF inválido. Por favor, verifique.'); return; }
+        if (cep.replace(/\D/g, '').length !== 8) { alert('CEP deve conter 8 dígitos.'); return; }
+        if (address.length < 10) { alert('Endereço muito curto. Por favor, forneça mais detalhes.'); return; }
+        
+        const data = { 
+            name: document.getElementById('client-name').value, 
+            phone: document.getElementById('client-phone').value, 
+            email: document.getElementById('client-email').value,
+            cpf: cpf.replace(/[^\d]+/g, ''),
+            cep: cep.replace(/\D/g, ''),
+            address: address
+        }; 
+        if (id) { 
+            const i = db.clients.findIndex(c => c.id == id); 
+            if (i !== -1) db.clients[i] = { ...db.clients[i], ...data }; 
+        } else { 
+            data.id = db.clients.length ? Math.max(...db.clients.map(c => c.id)) + 1 : 1; 
+            db.clients.push(data); 
+        } 
+        db.save(); renderAllTables(); updateDashboard(); closeModal(); 
+    });
+    clientsTableBody.addEventListener('click', (e) => {
+        const editBtn = e.target.closest('.btn-edit-client');
+        const deleteBtn = e.target.closest('.btn-delete-client');
+        if (editBtn) { 
+            const id = editBtn.dataset.id; 
+            const client = db.clients.find(c => c.id == id); 
+            if (client) { 
+                document.getElementById('client-id').value = client.id; 
+                document.getElementById('client-name').value = client.name; 
+                document.getElementById('client-phone').value = client.phone; 
+                document.getElementById('client-email').value = client.email;
+                document.getElementById('client-cpf').value = client.cpf;
+                document.getElementById('client-cep').value = client.cep;
+                document.getElementById('client-address').value = client.address;
+                document.getElementById('client-modal-title').textContent = 'Editar Cliente'; 
+                openModal('client-modal'); 
+            } 
+        }
+        if (deleteBtn) { 
+            const id = deleteBtn.dataset.id; 
+            if(confirm('Excluir este cliente? Todas as suas OS também serão removidas.')) { 
+                db.clients = db.clients.filter(c => c.id != id); 
+                db.serviceOrders = db.serviceOrders.filter(os => os.clientId != id); 
+                db.save(); renderAllTables(); updateDashboard(); 
+            } 
+        }
+    });
+    function renderClientsTable() { 
+        document.getElementById('clients-table-head').innerHTML = `<tr><th>ID</th><th>Nome</th><th>CPF</th><th>Telefone</th><th data-permission="atendente,admin">Ações</th></tr>`; 
+        clientsTableBody.innerHTML = ''; 
+        db.clients.forEach(client => { 
+            clientsTableBody.innerHTML += `<tr><td>${client.id}</td><td>${client.name}</td><td>${client.cpf}</td><td>${client.phone}</td><td class="action-buttons" data-permission="atendente,admin"><button class="btn-edit-client" data-id="${client.id}" title="Editar"><i class="fas fa-edit"></i></button><button class="btn-delete-client" data-id="${client.id}" title="Excluir"><i class="fas fa-trash"></i></button></td></tr>`; 
+        }); 
+        applyPermissions(); 
+    }
+
+    // --- GESTÃO DE ORDENS DE SERVIÇO ---
+    const osTableBody = document.getElementById('os-table-body');
+    document.getElementById('btn-new-os').addEventListener('click', () => { document.getElementById('os-form').reset(); document.getElementById('os-id').value = ''; document.getElementById('os-modal-title').textContent = 'Nova Ordem de Serviço'; const select = document.getElementById('os-client-id'); select.innerHTML = '<option value="">Selecione...</option>'; db.clients.forEach(c => select.innerHTML += `<option value="${c.id}">${c.name}</option>`); openModal('os-modal'); });
+    document.getElementById('os-form').addEventListener('submit', (e) => { e.preventDefault(); const clientId = document.getElementById('os-client-id').value; if (!clientId) { alert('Selecione um cliente.'); return; } const client = db.clients.find(c => c.id == clientId); const data = { clientId: client.id, clientName: client.name, product: document.getElementById('os-product').value, description: document.getElementById('os-description').value, date: new Date().toISOString().split('T')[0], status: 'em-andamento', paymentStatus: 'Pendente', observation: '' }; data.id = db.serviceOrders.length ? Math.max(...db.serviceOrders.map(o => o.id)) + 1 : 1; db.serviceOrders.push(data); db.save(); renderAllTables(); updateDashboard(); closeModal(); });
+    
+    osTableBody.addEventListener('click', (e) => {
+        const statusBtn = e.target.closest('.btn-status-os');
+        const paymentBtn = e.target.closest('.btn-payment-os');
+        const viewBtn = e.target.closest('.btn-view-os'); // Botão de visualizar
+
+        if (statusBtn) { const id = statusBtn.dataset.id; const os = db.serviceOrders.find(o => o.id == id); if(os) { document.getElementById('status-os-id').value = id; document.getElementById('os-new-status').value = os.status; openModal('status-modal'); } }
+        if (paymentBtn) { const id = paymentBtn.dataset.id; const os = db.serviceOrders.find(o => o.id == id); if (os && confirm(`Marcar a OS #${String(id).padStart(4, '0')} como "Paga"?`)) { os.paymentStatus = 'Pago'; db.save(); renderAllTables(); updateDashboard(); } }
+        if (viewBtn) { 
+            const id = viewBtn.dataset.id; 
+            const os = db.serviceOrders.find(o => o.id == id);
+            if(os) {
+                document.getElementById('os-details-id').value = os.id;
+                document.getElementById('details-os-client').textContent = os.clientName;
+                document.getElementById('details-os-product').textContent = os.product;
+                document.getElementById('details-os-description').textContent = os.description;
+                const observationTextarea = document.getElementById('os-observation');
+                const saveObservationBtn = document.getElementById('btn-save-observation');
+                observationTextarea.value = os.observation || '';
+
+                // Lógica de permissão para editar observação
+                if (currentUser.role === 'tecnico' || currentUser.role === 'admin') {
+                    observationTextarea.disabled = false;
+                    saveObservationBtn.style.display = '';
+                } else {
+                    observationTextarea.disabled = true;
+                    saveObservationBtn.style.display = 'none';
+                }
+                openModal('os-details-modal');
+            }
+        }
+    });
+    
+    document.getElementById('status-form').addEventListener('submit', (e) => { e.preventDefault(); const id = document.getElementById('status-os-id').value; const newStatus = document.getElementById('os-new-status').value; const os = db.serviceOrders.find(o => o.id == id); if (os) { os.status = newStatus; db.save(); renderAllTables(); updateDashboard(); closeModal(); } });
+    
+    // Salvar observações da OS
+    document.getElementById('os-details-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const id = document.getElementById('os-details-id').value;
+        const os = db.serviceOrders.find(o => o.id == id);
+        if(os) {
+            os.observation = document.getElementById('os-observation').value;
+            db.save();
+            closeModal();
+            // Opcional: alert('Observações salvas!');
+        }
+    });
+
+    function renderOsTable() { 
+        document.getElementById('os-table-head').innerHTML = `<tr><th>Cód.</th><th>Cliente</th><th>Produto</th><th>Data</th><th>Status Técnico</th><th>Pagamento</th><th>Ações</th></tr>`; 
+        osTableBody.innerHTML = ''; 
+        db.serviceOrders.forEach(os => { 
+            const isTechLocked = os.status === 'finalizada' && currentUser.role !== 'admin';
+            const isPaymentLocked = os.paymentStatus === 'Pago'; 
+            osTableBody.innerHTML += `
+                <tr>
+                    <td>${String(os.id).padStart(4, '0')}</td>
+                    <td>${os.clientName}</td>
+                    <td>${os.product}</td>
+                    <td>${new Date(os.date).toLocaleDateString('pt-BR')}</td>
+                    <td><span class="status ${os.status}">${os.status.replace('-', ' ')}</span></td>
+                    <td><span class="status ${os.paymentStatus.toLowerCase()}">${os.paymentStatus}</span></td>
+                    <td class="action-buttons">
+                        <button class="btn-view-os" data-id="${os.id}" title="Ver/Editar Observações"><i class="fas fa-eye"></i></button>
+                        <button class="btn-status-os" data-id="${os.id}" title="Alterar Status Técnico" data-permission="tecnico,admin" ${isTechLocked ? 'disabled' : ''}><i class="fas fa-sync-alt"></i></button>
+                        <button class="btn-payment-os" data-id="${os.id}" title="Alterar Status Pagamento" data-permission="atendente,admin" ${isPaymentLocked ? 'disabled' : ''}><i class="fas fa-dollar-sign"></i></button>
+                    </td>
+                </tr>`; 
+        }); 
+        applyPermissions(); 
+    }
+
+    // --- GESTÃO DE ESTOQUE ---
+    const stockTableBody = document.getElementById('stock-table-body');
+    document.getElementById('btn-new-item').addEventListener('click', () => { document.getElementById('item-form').reset(); document.getElementById('item-id').value = ''; document.getElementById('item-modal-title').textContent = 'Novo Item de Estoque'; document.getElementById('stock-initial-group').style.display = 'flex'; openModal('item-modal'); });
+    document.getElementById('item-form').addEventListener('submit', (e) => { e.preventDefault(); const id = document.getElementById('item-id').value; const data = { name: document.getElementById('item-name').value, brand: document.getElementById('item-brand').value, model: document.getElementById('item-model').value }; if (id) { const i = db.items.findIndex(item => item.id == id); if (i !== -1) db.items[i] = { ...db.items[i], ...data }; } else { data.id = db.items.length ? Math.max(...db.items.map(i => i.id)) + 1 : 1; data.quantity = parseInt(document.getElementById('item-stock-initial').value) || 0; db.items.push(data); } db.save(); renderAllTables(); updateDashboard(); closeModal(); });
+    stockTableBody.addEventListener('click', (e) => {
+        const editBtn = e.target.closest('.btn-edit-item');
+        const deleteBtn = e.target.closest('.btn-delete-item');
+        const adjustBtn = e.target.closest('.btn-adjust-stock');
+        if (editBtn) { const id = editBtn.dataset.id; const item = db.items.find(i => i.id == id); if (item) { document.getElementById('item-id').value = item.id; document.getElementById('item-name').value = item.name; document.getElementById('item-brand').value = item.brand; document.getElementById('item-model').value = item.model; document.getElementById('item-modal-title').textContent = 'Editar Item'; document.getElementById('stock-initial-group').style.display = 'none'; openModal('item-modal'); } }
+        if (deleteBtn) { const id = deleteBtn.dataset.id; if (confirm('Tem certeza que deseja excluir este item?')) { db.items = db.items.filter(i => i.id != id); db.save(); renderAllTables(); updateDashboard(); } }
+        if (adjustBtn) { const id = adjustBtn.dataset.id; const item = db.items.find(i => i.id == id); if(item) { document.getElementById('stock-adjust-item-id').value = id; document.getElementById('stock-adjust-title').textContent = `Ajustar Estoque: ${item.name}`; document.getElementById('stock-adjust-current-qty').textContent = item.quantity; document.getElementById('stock-adjust-form').reset(); openModal('stock-adjust-modal'); } }
+    });
+    document.getElementById('stock-adjust-form').addEventListener('submit', (e) => { e.preventDefault(); const id = document.getElementById('stock-adjust-item-id').value; const amount = parseInt(document.getElementById('stock-adjust-amount').value); const item = db.items.find(i => i.id == id); if (item && !isNaN(amount)) { const newQty = item.quantity + amount; if (newQty < 0) { alert('A quantidade em estoque não pode ser negativa.'); return; } item.quantity = newQty; db.save(); renderAllTables(); updateDashboard(); closeModal(); } else { alert('Insira um valor numérico válido.'); } });
+    function renderStockTable() { document.getElementById('stock-table-head').innerHTML = `<tr><th>Cód.</th><th>Nome</th><th>Marca</th><th>Modelo</th><th>Qtd.</th><th>Ações</th></tr>`; stockTableBody.innerHTML = ''; db.items.forEach(item => { stockTableBody.innerHTML += `<tr><td>${String(item.id).padStart(4, '0')}</td><td>${item.name}</td><td>${item.brand}</td><td>${item.model}</td><td><b>${item.quantity}</b></td><td class="action-buttons"><button class="btn-adjust-stock" data-id="${item.id}" title="Ajustar Quantidade" data-permission="tecnico,admin"><i class="fas fa-exchange-alt"></i></button><button class="btn-edit-item" data-id="${item.id}" title="Editar Item" data-permission="admin"><i class="fas fa-edit"></i></button><button class="btn-delete-item" data-id="${item.id}" title="Excluir Item" data-permission="admin"><i class="fas fa-trash"></i></button></td></tr>`; }); applyPermissions(); }
+
+});
+</script>
+</body>
+</html>
