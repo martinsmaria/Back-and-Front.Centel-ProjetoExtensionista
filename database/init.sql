@@ -33,8 +33,8 @@ CREATE TABLE IF NOT EXISTS service_orders (
   product VARCHAR(100) NOT NULL,
   description TEXT NOT NULL,
   date DATE NOT NULL,
-  status VARCHAR(50) NOT NULL DEFAULT 'em-andamento',
-  payment_status VARCHAR(50) NOT NULL DEFAULT 'Pendente',
+  status VARCHAR(50) NOT NULL DEFAULT 'recebido',
+  service_class VARCHAR(50) NOT NULL DEFAULT 'comum',
   observation TEXT,
   active BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -65,10 +65,10 @@ INSERT INTO clients (name, phone, email, cpf, cep, address) VALUES
   ('Maria Eduarda', '31 99326-8121', 'maria@email.com', '98765432109', '35160456', 'Avenida Principal, 456, Bairro Novo');
 
 -- Insert sample service orders
-INSERT INTO service_orders (client_id, product, description, date, status, payment_status, observation) VALUES
-  (1, 'TV Samsung 50"', 'Não liga', '2025-10-01', 'em-andamento', 'Pendente', 'Cliente relata que o aparelho desligou subitamente. Suspeita de fonte.'),
-  (2, 'Notebook Dell', 'Tela quebrada', '2025-10-03', 'aguardando', 'Pendente', ''),
-  (1, 'Soundbar JBL', 'Sem som', '2025-09-25', 'finalizada', 'Pago', 'Troca do circuito de áudio. Testado e funcionando perfeitamente.');
+INSERT INTO service_orders (client_id, product, description, date, status, service_class, observation) VALUES
+  (1, 'TV Samsung 50"', 'Não liga', '2025-10-01', 'em-manutencao', 'comum', 'Cliente relata que o aparelho desligou subitamente. Suspeita de fonte.'),
+  (2, 'Notebook Dell', 'Tela quebrada', '2025-10-03', 'aguardando-pecas', 'urgente', ''),
+  (1, 'Soundbar JBL', 'Sem som', '2025-09-25', 'finalizado', 'comum', 'Troca do circuito de áudio. Testado e funcionando perfeitamente.');
 
 -- Insert sample items
 INSERT INTO items (name, brand, model, quantity) VALUES

@@ -133,12 +133,18 @@ app.get("/orders", async (req, res) => {
         so.description,
         so.date, 
         so.status, 
-        so.payment_status as paymentStatus, 
+        so.service_class as serviceClass,
         so.observation
       FROM service_orders so
       LEFT JOIN clients c ON so.client_id = c.id
       WHERE so.active = TRUE AND c.status = TRUE
-      ORDER BY so.id DESC
+      ORDER BY 
+        CASE so.service_class
+          WHEN 'urgente' THEN 1
+          WHEN 'data-fixa' THEN 2
+          WHEN 'comum' THEN 3
+        END,
+        so.id DESC
     `);
     res.json(rows);
   } catch (error) {
@@ -149,7 +155,7 @@ app.get("/orders", async (req, res) => {
 
 app.post("/orders", async (req, res) => {
   try {
-    const { clientId, product, description } = req.body || {};
+    const { clientId, product, description, serviceClass } = req.body || {};
     if (!clientId || !product || !description) {
       return res.status(400).json({ message: "Campos obrigatórios ausentes" });
     }
@@ -163,10 +169,11 @@ app.post("/orders", async (req, res) => {
 
     const client = clientRows[0];
     const date = new Date().toISOString().slice(0, 10);
+    const finalServiceClass = serviceClass || 'comum';
 
     const [result] = await db.query(
-      "INSERT INTO service_orders (client_id, product, description, date, status, payment_status, observation) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      [client.id, product, description, date, "em-andamento", "Pendente", ""]
+      "INSERT INTO service_orders (client_id, product, description, date, status, service_class, observation) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [client.id, product, description, date, "recebido", finalServiceClass, ""]
     );
 
     const newOrder = {
@@ -176,8 +183,8 @@ app.post("/orders", async (req, res) => {
       product,
       description,
       date,
-      status: "em-andamento",
-      paymentStatus: "Pendente",
+      status: "recebido",
+      serviceClass: finalServiceClass,
       observation: "",
     };
 
@@ -191,12 +198,12 @@ app.post("/orders", async (req, res) => {
 app.put("/orders/:id", async (req, res) => {
   try {
     const id = Number(req.params.id);
-    const { product, description, status, paymentStatus, observation } =
+    const { product, description, status, serviceClass, observation } =
       req.body || {};
 
     const [result] = await db.query(
-      "UPDATE service_orders SET product = ?, description = ?, status = ?, payment_status = ?, observation = ? WHERE id = ? AND active = TRUE",
-      [product, description, status, paymentStatus, observation, id]
+      "UPDATE service_orders SET product = ?, description = ?, status = ?, service_class = ?, observation = ? WHERE id = ? AND active = TRUE",
+      [product, description, status, serviceClass, observation, id]
     );
 
     if (result.affectedRows === 0) {
@@ -213,7 +220,7 @@ app.put("/orders/:id", async (req, res) => {
         so.description,
         so.date, 
         so.status, 
-        so.payment_status as paymentStatus, 
+        so.service_class as serviceClass,
         so.observation
       FROM service_orders so
       LEFT JOIN clients c ON so.client_id = c.id
@@ -234,6 +241,22 @@ app.patch("/orders/:id/status", async (req, res) => {
     const id = Number(req.params.id);
     const { status } = req.body || {};
 
+    // Validar fluxo de status Kanban
+    const validStatuses = [
+      'recebido',
+      'em-analise',
+      'aguardando-aprovacao',
+      'aguardando-pecas',
+      'em-manutencao',
+      'em-testes',
+      'pronto-entrega',
+      'finalizado'
+    ];
+
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ message: "Status inválido" });
+    }
+
     const [result] = await db.query(
       "UPDATE service_orders SET status = ? WHERE id = ? AND active = TRUE",
       [status, id]
@@ -253,7 +276,7 @@ app.patch("/orders/:id/status", async (req, res) => {
         so.description,
         so.date, 
         so.status, 
-        so.payment_status as paymentStatus, 
+        so.service_class as serviceClass,
         so.observation
       FROM service_orders so
       LEFT JOIN clients c ON so.client_id = c.id
@@ -266,46 +289,6 @@ app.patch("/orders/:id/status", async (req, res) => {
   } catch (error) {
     console.error("Erro ao atualizar status:", error);
     res.status(500).json({ message: "Erro ao atualizar status" });
-  }
-});
-
-app.patch("/orders/:id/payment", async (req, res) => {
-  try {
-    const id = Number(req.params.id);
-    const { paymentStatus } = req.body || {};
-
-    const [result] = await db.query(
-      "UPDATE service_orders SET payment_status = ? WHERE id = ? AND active = TRUE",
-      [paymentStatus, id]
-    );
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: "OS não encontrada" });
-    }
-
-    const [rows] = await db.query(
-      `
-      SELECT 
-        so.id, 
-        so.client_id as clientId, 
-        c.name as clientName, 
-        so.product, 
-        so.description,
-        so.date, 
-        so.status, 
-        so.payment_status as paymentStatus, 
-        so.observation
-      FROM service_orders so
-      LEFT JOIN clients c ON so.client_id = c.id
-      WHERE so.id = ? AND so.active = TRUE
-    `,
-      [id]
-    );
-
-    res.json(rows[0]);
-  } catch (error) {
-    console.error("Erro ao atualizar pagamento:", error);
-    res.status(500).json({ message: "Erro ao atualizar pagamento" });
   }
 });
 
@@ -333,7 +316,7 @@ app.patch("/orders/:id/observation", async (req, res) => {
         so.description,
         so.date, 
         so.status, 
-        so.payment_status as paymentStatus, 
+        so.service_class as serviceClass,
         so.observation
       FROM service_orders so
       LEFT JOIN clients c ON so.client_id = c.id

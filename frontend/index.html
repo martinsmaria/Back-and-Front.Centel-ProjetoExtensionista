@@ -5,48 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CENTEL - Sistema de Gestão</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" />
-    <style>
-      :root {
-        --bg-dark: #1a1d24; --bg-medium: #282c37; --bg-light: #323846;
-        --primary: #00b894; --primary-hover: #55efc4; --text-primary: #dfe6e9;
-        --text-secondary: #b2bec3; --border-color: #4b5263; --danger: #d63031;
-        --warning: #fdcb6e; --success: #00b894;
-      }
-      * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-      body { background-color: var(--bg-dark); color: var(--text-primary); }
-      #root, body, html { height: 100%; }
-      .app-container { display: flex; height: 100vh; }
-      .sidebar { width: 260px; background: var(--bg-medium); padding: 20px; display: flex; flex-direction: column; border-right: 1px solid var(--border-color); }
-      .sidebar .logo { width: 150px; margin: 10px auto 40px; }
-      .sidebar nav a { display: flex; align-items: center; color: var(--text-secondary); text-decoration: none; padding: 12px 15px; border-radius: 6px; margin-bottom: 8px; transition: background-color 0.2s, color 0.2s; }
-      .sidebar nav a i { margin-right: 15px; width: 20px; }
-      .sidebar nav a.active, .sidebar nav a:hover { background: var(--primary); color: #fff; }
-      .sidebar .user-profile { margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border-color); text-align: center; }
-      .main-content { flex: 1; overflow-y: auto; padding: 30px; }
-      .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-      .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-      .btn-primary { background: var(--primary); color: white; }
-      .btn-primary:hover { background: var(--primary-hover); color: var(--bg-dark); }
-      .table-container { background: var(--bg-medium); padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
-      .data-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-      .data-table th, .data-table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); }
-      .data-table th { font-size: 14px; color: var(--text-secondary); }
-      .status { padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; text-transform: capitalize; }
-      .status.em-andamento { background: var(--warning); color: var(--bg-dark); }
-      .status.finalizada { background: var(--success); color: white; }
-      .status.aguardando { background: var(--danger); color: white; }
-      .status.pago { background: var(--success); color: white; }
-      .status.pendente { background: var(--danger); color: white; }
-      .card-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
-      .card { background: var(--bg-medium); padding: 20px; border-radius: 8px; border: 1px solid var(--border-color); }
-      .card h3 { color: var(--text-secondary); font-size: 16px; margin-bottom: 10px; }
-      .card .value { font-size: 32px; font-weight: bold; color: var(--primary); }
-    </style>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
-  </html>
+</html>
 
 
