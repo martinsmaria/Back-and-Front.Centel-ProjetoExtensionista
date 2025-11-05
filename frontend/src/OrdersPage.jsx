@@ -23,14 +23,14 @@ export default function OrdersPage({ refresh, clients }) {
     refresh(); 
   }
 
-  // async function deleteOrder(id) {
-  //   if (!confirm('Tem certeza que deseja excluir esta Ordem de Serviço?')) {
-  //     return;
-  //   }
-  //   await api(`/orders/${id}`, { method: 'DELETE' });
-  //   await load();
-  //   refresh();
-  // }
+  async function deleteOrder(id) {
+    if (!confirm('Tem certeza que deseja excluir esta Ordem de Serviço?')) {
+      return;
+    }
+    await api(`/orders/${id}`, { method: 'DELETE' });
+    await load();
+    refresh();
+  }
 
   // Definição dos status do fluxo Kanban
   const kanbanColumns = [
@@ -214,7 +214,7 @@ export default function OrdersPage({ refresh, clients }) {
                             ▶️
                           </button>
                         )}
-                        {/* <button
+                        <button
                           className="btn"
                           style={{ 
                             fontSize: '10px', 
@@ -227,7 +227,7 @@ export default function OrdersPage({ refresh, clients }) {
                           title="Excluir OS"
                         >
                           🗑️
-                        </button> */}
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -269,7 +269,7 @@ export default function OrdersPage({ refresh, clients }) {
                         <option key={col.id} value={col.id}>{col.label}</option>
                       ))}
                     </select>
-                    {/* <button
+                    <button
                       className="btn"
                       style={{ 
                         fontSize: '11px', 
@@ -281,7 +281,7 @@ export default function OrdersPage({ refresh, clients }) {
                       title="Excluir OS"
                     >
                       🗑️
-                    </button> */}
+                    </button>
                   </td>
                 </tr>
               ))}
